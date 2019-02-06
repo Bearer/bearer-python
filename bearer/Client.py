@@ -13,8 +13,4 @@ class Client():
         headers = {'Authorization': self.token}
         response = requests.post(
             INT_URL + integrationId + '/' + intentName, headers=headers, data=options)
-        print('Data sent: {!r}'.format(response.json()))
-
-
-c = Client('HExbb3Tvba2hLl-VBBWKVO-sUUzpLYD-')
-c.call("9eabba-github-actions-auto-push", "SpongeBobIsTheKing", {'page': 1})
+        return response.json()
