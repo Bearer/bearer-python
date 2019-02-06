@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="bearer",
-    version="0.0.1",
+    version="0.0.3",
     author="Bearer Team",
     author_email="engineering+python@bearer.sh",
     description="Bearer python helper",
@@ -16,7 +16,6 @@ setuptools.setup(
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-        "Bearer python SDK"
+        "Operating System :: OS Independent"
     ],
 )
