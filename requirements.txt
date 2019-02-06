@@ -1,0 +1,7 @@
+tox
+wheel
+pypandoc
+
+requests[security]>=2.9.1
+faker
+pytest
