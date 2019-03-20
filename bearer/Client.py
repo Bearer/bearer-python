@@ -1,6 +1,6 @@
 import requests
 
-INT_URL = 'https://int.bearer.sh/api/v2/intents/backend/'
+INT_URL = 'https://int.bearer.sh/api/v3/functions/backend/'
 
 
 class Client():
