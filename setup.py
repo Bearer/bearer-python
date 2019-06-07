@@ -18,4 +18,17 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent"
     ],
+    install_requires=[
+        "requests[security]>=2.9.1"
+    ],
+    setup_requires=[
+        "pytest-runner",
+        "twine",
+        "wheel"
+    ],
+    tests_require=[
+        "faker",
+        "pytest",
+        "requests_mock"
+    ]
 )
