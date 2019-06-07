@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="bearer",
-    version="0.0.4",
+    version="1.0.0",
     author="Bearer Team",
     author_email="engineering+python@bearer.sh",
     description="Bearer python helper",
