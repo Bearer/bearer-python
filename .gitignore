@@ -5,6 +5,8 @@
 /dist/
 
 # Python egg metadata, regenerated from source files by setuptools.
+.eggs
+.mypy_cache
 /*.egg-info
 __pycache__
 .envrc
