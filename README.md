@@ -10,7 +10,7 @@ pip install bearer
 
 ## Usage
 
-Get your Bearer [API Key](https://app.bearer.sh/keys) and integration id from
+Get your Bearer [Secret Key](https://app.bearer.sh/keys) and integration id from
 the [Dashboard](https://app.bearer.sh) and use the Bearer client as follows:
 
 ### Calling any APIs
@@ -18,7 +18,7 @@ the [Dashboard](https://app.bearer.sh) and use the Bearer client as follows:
 ```python
 from bearer import Bearer
 
-bearer = Bearer('your api key') # find it on https://app.bearer.sh/keys
+bearer = Bearer('BEARER_SECRET_KEY') # find it on https://app.bearer.sh/keys
 github = (
     bearer
       .integration('your integration id') # you'll find it on the Bearer dashboard https://app.bearer.sh
@@ -47,10 +47,8 @@ print(github.post('/user/repos', body={ 'name': 'Just setting up my Bearer.sh' }
 ```python
 from bearer import Bearer
 
-bearer = Bearer('your api key')
+bearer = Bearer('BEARER_SECRET_KEY')
 github = bearer.integration('your integration id')
 
 print(github.invoke('your function name'))
 ```
-
-[Learn more](https://docs.bearer.sh/working-with-bearer/manipulating-apis) on how to use custom functions with Bearer.sh.
