@@ -52,3 +52,16 @@ github = bearer.integration('your integration id')
 
 print(github.invoke('your function name'))
 ```
+
+## Development
+
+``` bash
+# setup venv
+$ python -m venv venv
+
+# install dependencies
+$ venv/bin/python setup.py develop
+
+# start the console
+$ venv/bin/python
+```
