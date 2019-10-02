@@ -1,5 +1,6 @@
 import requests
 import warnings
+import pkg_resources  # part of setuptools
 
 from typing import Optional, Union
 
@@ -172,9 +173,11 @@ class Integration():
           query: parameters to add to the URL's query string
         """
 
+        version = pkg_resources.require("bearer")[0].version
+
         pre_headers = {
           'Authorization': self.api_key,
-          'User-Agent': 'Bearer.sh',
+          'User-Agent': 'Bearer-Python ({version})'.format(version=version),
           'Bearer-Auth-Id': self.auth_id,
           'Bearer-Setup-Id': self.setup_id
         }
