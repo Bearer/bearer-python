@@ -32,7 +32,7 @@ class Bearer():
         """
         self.api_key = api_key
         self.integration_host = integration_host
-        self.timeout = timeout
+        self.timeout = timeout or TIMEOUT #ensure timeout is always set
 
     def invoke(self, integration_buid: str, function_name: str, body: dict = {}, params: dict = {}):
         """Invoke an integration function
