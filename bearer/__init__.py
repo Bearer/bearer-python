@@ -7,6 +7,7 @@ from typing import Optional, Union
 PRODUCTION_INTEGRATION_HOST = 'https://int.bearer.sh'
 FUNCTIONS_PATH = 'api/v4/functions/backend'
 PROXY_FUNCTION_NAME = 'bearer-proxy'
+TIMEOUT = 5
 
 class FunctionError(Exception):
     def __init__(self, response):
@@ -23,7 +24,7 @@ class Bearer():
       >>> bearer.invoke('<buid>', 'defaultFunction')
     """
 
-    def __init__(self, api_key: str, integration_host: str = PRODUCTION_INTEGRATION_HOST):
+    def __init__(self, api_key: str, integration_host: str = PRODUCTION_INTEGRATION_HOST, timeout: int = TIMEOUT):
         """
         Args:
           api_key: developer API Key from the Dashboard
@@ -31,6 +32,7 @@ class Bearer():
         """
         self.api_key = api_key
         self.integration_host = integration_host
+        self.timeout = timeout
 
     def invoke(self, integration_buid: str, function_name: str, body: dict = {}, params: dict = {}):
         """Invoke an integration function
@@ -50,7 +52,7 @@ class Bearer():
         )
 
     def integration(self, integration_id: str):
-        return Integration(integration_id, self.integration_host, self.api_key)
+        return Integration(integration_id, self.integration_host, self.api_key, self.timeout)
 
 BodyData = Union[dict, list]
 
@@ -60,6 +62,7 @@ class Integration():
         integration_id: str,
         integration_host: str,
         api_key: str,
+        timeout: int,
         setup_id: str = None,
         auth_id: str = None
     ):
@@ -68,6 +71,7 @@ class Integration():
         self.api_key = api_key
         self.setup_id = setup_id
         self.auth_id = auth_id
+        self.timeout = timeout
 
     def invoke(self, function_name: str, body: dict = {}, query: dict = None):
         """Invoke an integration function
@@ -189,4 +193,4 @@ class Integration():
         request_headers = {k: v for k, v in pre_headers.items() if v is not None}
         url = '{}/{}/{}/{}/{}'.format(self.integration_host, FUNCTIONS_PATH, self.integration_id, PROXY_FUNCTION_NAME, endpoint.lstrip('/'))
 
-        return requests.request(method, url, headers=request_headers, json=body, params=query)
+        return requests.request(method, url, headers=request_headers, json=body, params=query, timeout=self.timeout)
