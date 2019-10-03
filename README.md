@@ -52,7 +52,18 @@ github = bearer.integration('your integration id')
 
 print(github.invoke('your function name'))
 ```
+### Setting the request timeout
 
+By default bearer client times out after 5 seconds. Bearer allows to increase the timeout to up to 30 seconds
+
+```python
+from bearer import Bearer
+
+bearer = Bearer('BEARER_SECRET_KEY', timeout=10) # increase the request timeout to 10 seconds
+github = bearer.integration('your integration id')
+
+print(github.invoke('your function name'))
+```
 ## Development
 
 ``` bash
