@@ -29,6 +29,7 @@ setuptools.setup(
     tests_require=[
         "faker",
         "pytest",
-        "requests_mock"
+        "requests_mock",
+        "pytest-mock"
     ]
 )

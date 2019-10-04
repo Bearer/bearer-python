@@ -2,7 +2,7 @@ import requests
 import warnings
 import pkg_resources  # part of setuptools
 
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 PRODUCTION_INTEGRATION_HOST = 'https://int.bearer.sh'
 FUNCTIONS_PATH = 'api/v4/functions/backend'
@@ -21,89 +21,53 @@ class Bearer():
       >>> from bearer import Bearer
       >>>
       >>> bearer = Bearer('<api-key>')
-      >>> bearer.invoke('<buid>', 'defaultFunction')
+      >>> bearer.integration('<integration_id>')
     """
 
-    def __init__(self, api_key: str, integration_host: str = PRODUCTION_INTEGRATION_HOST, timeout: int = TIMEOUT):
+    def __init__(
+            self,
+            api_key: str,
+            integration_host: str = None,
+            timeout: int = None,
+            host: str = PRODUCTION_INTEGRATION_HOST,
+            http_client_settings: Dict[str, str] = {"timeout": TIMEOUT}
+    ):
         """
         Args:
           api_key: developer API Key from the Dashboard
 
         """
         self.api_key = api_key
-        self.integration_host = integration_host
-        self.timeout = timeout or TIMEOUT #ensure timeout is always set
+        self.host = host
+        self.http_client_settings = http_client_settings
+        if integration_host is not None:
+            warnings.warn("Please use `host`; `integration_host` is deprecated", DeprecationWarning)
+            self.host = integration_host
+        if timeout is not None:
+            warnings.warn("Please use `http_client_settings`; `timeout` is deprecated", DeprecationWarning)
+            self.timeout = self.http_client_settings["timeout"] = timeout
 
-    def invoke(self, integration_buid: str, function_name: str, body: dict = {}, params: dict = {}):
-        """Invoke an integration function
-
-        Args:
-          integration_buid: identifier of the integration
-          function_name: function to invoke
-          body: data to pass in the body of the request
-          params: parameters to pass in the query string of the request
-
-        """
-        warnings.warn("Please use integration(...).invoke(...) instead", DeprecationWarning)
-        return self.integration(integration_buid).invoke(
-            function_name=function_name,
-            body=body,
-            query=params
-        )
-
-    def integration(self, integration_id: str):
-        return Integration(integration_id, self.integration_host, self.api_key, self.timeout)
+    def integration(self, integration_id: str, http_client_settings: Dict[str, str] = {}):
+        client_settings = {**self.http_client_settings, **http_client_settings}
+        return Integration(integration_id, self.host, self.api_key, client_settings)
 
 BodyData = Union[dict, list]
 
 class Integration():
     def __init__(
-        self,
-        integration_id: str,
-        integration_host: str,
-        api_key: str,
-        timeout: int,
-        setup_id: str = None,
-        auth_id: str = None
+            self,
+            integration_id: str,
+            host: str,
+            api_key: str,
+            http_client_settings: Dict[str, str] = {},
+            auth_id: str = None,
     ):
         self.integration_id = integration_id
-        self.integration_host = integration_host
+        self.host = host
         self.api_key = api_key
-        self.setup_id = setup_id
         self.auth_id = auth_id
-        self.timeout = timeout
+        self.http_client_settings = http_client_settings
 
-    def invoke(self, function_name: str, body: dict = {}, query: dict = None):
-        """Invoke an integration function
-
-        Args:
-          integration_buid: identifier of the integration
-          function_name: function to invoke
-          body: data to pass in the body of the request
-          query: parameters to pass in the query string of the request
-        """
-
-        headers = { 'Authorization': self.api_key }
-        url = '{}/{}/{}/{}'.format(self.integration_host, FUNCTIONS_PATH, self.integration_id, function_name)
-
-        response = requests.post(url, headers=headers, data=body, params=query).json()
-        if 'error' in response:
-            raise FunctionError(response['error'])
-        return response
-
-    def setup(self, setup_id: str):
-        """Returns a new integration client instance that will use the given setup id for requests
-
-        Args:
-          setup_id: the setup id from the dashboard
-        """
-        return Integration(
-            self.integration_id,
-            self.integration_host,
-            self.api_key,
-            setup_id,
-            self.auth_id
-        )
 
     def auth(self, auth_id: str):
         """Returns a new integration client instance that will use the given auth id for requests
@@ -113,9 +77,9 @@ class Integration():
         """
         return Integration(
             self.integration_id,
-            self.integration_host,
+            self.host,
             self.api_key,
-            self.setup_id,
+            self.http_client_settings,
             auth_id
         )
 
@@ -182,8 +146,7 @@ class Integration():
         pre_headers = {
           'Authorization': self.api_key,
           'User-Agent': 'Bearer-Python ({version})'.format(version=version),
-          'Bearer-Auth-Id': self.auth_id,
-          'Bearer-Setup-Id': self.setup_id
+          'Bearer-Auth-Id': self.auth_id
         }
 
         if headers is not None:
@@ -191,6 +154,6 @@ class Integration():
             pre_headers['Bearer-Proxy-{}'.format(key)] = value
 
         request_headers = {k: v for k, v in pre_headers.items() if v is not None}
-        url = '{}/{}/{}/{}/{}'.format(self.integration_host, FUNCTIONS_PATH, self.integration_id, PROXY_FUNCTION_NAME, endpoint.lstrip('/'))
+        url = '{}/{}/{}/{}/{}'.format(self.host, FUNCTIONS_PATH, self.integration_id, PROXY_FUNCTION_NAME, endpoint.lstrip('/'))
 
-        return requests.request(method, url, headers=request_headers, json=body, params=query, timeout=self.timeout)
+        return requests.request(method, url, headers=request_headers, json=body, params=query, **self.http_client_settings)

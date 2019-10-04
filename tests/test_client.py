@@ -15,29 +15,6 @@ URL = 'https://int.bearer.sh/api/v4/functions/backend/{}/{}'.format(BUID, FUNCTI
 CUSTOM_HOST = 'https://example.com'
 CUSTOM_URL = '{}/api/v4/functions/backend/{}/{}'.format(CUSTOM_HOST, BUID, FUNCTION_NAME)
 
-def test_invoke_calls_the_function(requests_mock):
-    requests_mock.post(URL, json=SUCCESS_PAYLOAD, headers={'Authorization': API_KEY})
-    client = Bearer(API_KEY)
-
-    data = client.invoke(BUID, FUNCTION_NAME)
-
-    assert data == SUCCESS_PAYLOAD
-
-def test_invoke_uses_the_integration_host(requests_mock):
-    requests_mock.post(CUSTOM_URL, json=SUCCESS_PAYLOAD)
-    client = Bearer(API_KEY, integration_host=CUSTOM_HOST)
-
-    data = client.invoke(BUID, FUNCTION_NAME)
-
-    assert data == SUCCESS_PAYLOAD
-
-def test_invoke_raises_on_error_response(requests_mock):
-    requests_mock.post(URL, json=ERROR_PAYLOAD)
-    client = Bearer(API_KEY)
-
-    with pytest.raises(FunctionError, match='Oops!'):
-        client.invoke(BUID, FUNCTION_NAME)
-
 
 PROXY_URL = 'https://int.bearer.sh/api/v4/functions/backend/{}/bearer-proxy'.format(BUID)
 ENDPOINT_URL = '{}/test?query=param'.format(PROXY_URL)
@@ -117,14 +94,50 @@ def test_request_passes_auth_id(requests_mock):
 
     assert response.json() == SUCCESS_PAYLOAD
 
-def test_request_passes_setup_id(requests_mock):
-    setup_id = 'test-setup-id'
-    expected_headers = { **SENT_HEADERS, 'Bearer-Setup-Id': setup_id }
-    requests_mock.post(ENDPOINT_URL, headers=expected_headers, json=SUCCESS_PAYLOAD)
+def test_bearer_with_timeout_parameter_issues_warning():
+    with pytest.warns(DeprecationWarning, match="Please use `http_client_settings`; `timeout` is deprecated"):
+        Bearer("api_key", timeout=5)
 
-    client = Bearer(API_KEY)
-    integration = client.integration(BUID).setup(setup_id)
 
-    response = integration.post('/test', headers=HEADERS, query=QUERY, body=BODY)
+def test_bearer_with_integration_host_issues_warning():
+    with pytest.warns(DeprecationWarning, match="Please use `host`; `integration_host` is deprecated"):
+        Bearer("api_key", integration_host='host')
 
-    assert response.json() == SUCCESS_PAYLOAD
+def test_setting_http_client_settings(mocker):
+    mocker.patch("requests.request")
+    github = Bearer("api_key", http_client_settings={"timeout":11}).integration("github")
+    github.get("/")
+    requests.request.assert_called_once_with(
+        'GET',
+        'https://int.bearer.sh/api/v4/functions/backend/github/bearer-proxy/',
+        headers={'Authorization': 'api_key', 'User-Agent': 'Bearer-Python (1.2.0)'},
+        json=None,
+        params=None,
+        timeout=11
+    )
+
+def test_setting_http_client_settings_in_integration(mocker):
+    mocker.patch("requests.request")
+    github = Bearer("api_key").integration("github")
+    github.get("/")
+    requests.request.assert_called_once_with(
+        'GET',
+        'https://int.bearer.sh/api/v4/functions/backend/github/bearer-proxy/',
+        headers={'Authorization': 'api_key', 'User-Agent': 'Bearer-Python (1.2.0)'},
+        json=None,
+        params=None,
+        timeout=5
+    )
+
+    github = Bearer("api_key", host="https://some.other.host").integration("github", http_client_settings={"timeout":11})
+
+    github.get("/")
+
+    requests.request.assert_called_with(
+        'GET',
+        'https://some.other.host/api/v4/functions/backend/github/bearer-proxy/',
+        headers={'Authorization': 'api_key', 'User-Agent': 'Bearer-Python (1.2.0)'},
+        json=None,
+        params=None,
+        timeout=11
+    )
