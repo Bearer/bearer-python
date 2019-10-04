@@ -1,28 +1,27 @@
 import pytest
 import requests
+import pkg_resources
 
-from bearer import Bearer, FunctionError
+from bearer import Bearer
 
 API_KEY = 'api-key'
 BUID = 'buid'
-FUNCTION_NAME = 'funcName'
 
 SUCCESS_PAYLOAD = {"data": "It Works!!"}
 ERROR_PAYLOAD = {"error": "Oops!"}
 
-URL = 'https://int.bearer.sh/api/v4/functions/backend/{}/{}'.format(BUID, FUNCTION_NAME)
+URL = 'https://proxy.bearer.sh/{}/'.format(BUID)
 
 CUSTOM_HOST = 'https://example.com'
-CUSTOM_URL = '{}/api/v4/functions/backend/{}/{}'.format(CUSTOM_HOST, BUID, FUNCTION_NAME)
+CUSTOM_URL = '{}/{}/'.format(CUSTOM_HOST, BUID)
+ENDPOINT_URL = '{}test?query=param'.format(URL)
 
+HEADERS = {'test': 'header'}
+SENT_HEADERS = {'Bearer-Proxy-test': 'header'}
+QUERY = {'query': 'param'}
+BODY = {'body': 'data'}
 
-PROXY_URL = 'https://int.bearer.sh/api/v4/functions/backend/{}/bearer-proxy'.format(BUID)
-ENDPOINT_URL = '{}/test?query=param'.format(PROXY_URL)
-
-HEADERS = { 'test': 'header' }
-SENT_HEADERS = { 'Bearer-Proxy-test': 'header' }
-QUERY = { 'query': 'param' }
-BODY = { 'body': 'data' }
+VERSION = pkg_resources.require("bearer")[0].version
 
 def test_request_supports_get(requests_mock):
     requests_mock.get(ENDPOINT_URL, headers=SENT_HEADERS, json=SUCCESS_PAYLOAD)
@@ -105,12 +104,15 @@ def test_bearer_with_integration_host_issues_warning():
 
 def test_setting_http_client_settings(mocker):
     mocker.patch("requests.request")
-    github = Bearer("api_key", http_client_settings={"timeout":11}).integration("github")
-    github.get("/")
+    api = Bearer(API_KEY, http_client_settings={"timeout":11}).integration(BUID)
+    api.get("/")
     requests.request.assert_called_once_with(
         'GET',
-        'https://int.bearer.sh/api/v4/functions/backend/github/bearer-proxy/',
-        headers={'Authorization': 'api_key', 'User-Agent': 'Bearer-Python (1.2.0)'},
+        URL,
+        headers={
+            'Authorization': API_KEY,
+            'User-Agent': 'Bearer-Python ({})'.format(VERSION)
+        },
         json=None,
         params=None,
         timeout=11
@@ -118,12 +120,16 @@ def test_setting_http_client_settings(mocker):
 
 def test_setting_http_client_settings_in_integration(mocker):
     mocker.patch("requests.request")
-    github = Bearer("api_key").integration("github")
-    github.get("/")
+    api = Bearer(API_KEY).integration(BUID)
+    api.get("/")
+
     requests.request.assert_called_once_with(
         'GET',
-        'https://int.bearer.sh/api/v4/functions/backend/github/bearer-proxy/',
-        headers={'Authorization': 'api_key', 'User-Agent': 'Bearer-Python (1.2.0)'},
+        URL,
+        headers={
+            'Authorization': API_KEY,
+            'User-Agent': 'Bearer-Python ({})'.format(VERSION)
+        },
         json=None,
         params=None,
         timeout=5
@@ -131,14 +137,17 @@ def test_setting_http_client_settings_in_integration(mocker):
 
 def test_setting_http_client_settings_in_integration_and_host_in_bearer_class(mocker):
     mocker.patch("requests.request")
-    github = Bearer("api_key", host="https://some.other.host").integration("github", http_client_settings={"timeout":11})
+    github = Bearer(API_KEY, host=CUSTOM_HOST).integration(BUID, http_client_settings={"timeout":11})
 
     github.get("/")
 
     requests.request.assert_called_once_with(
         'GET',
-        'https://some.other.host/api/v4/functions/backend/github/bearer-proxy/',
-        headers={'Authorization': 'api_key', 'User-Agent': 'Bearer-Python (1.2.0)'},
+        CUSTOM_URL,
+        headers={
+            'Authorization': API_KEY,
+            'User-Agent': 'Bearer-Python ({})'.format(VERSION)
+        },
         json=None,
         params=None,
         timeout=11

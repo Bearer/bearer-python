@@ -1,18 +1,20 @@
-import requests
-import warnings
-import pkg_resources  # part of setuptools
+"""
+Bearer Python bindings
+"""
 
 from typing import Optional, Union, Dict
 
-PRODUCTION_INTEGRATION_HOST = 'https://int.bearer.sh'
-FUNCTIONS_PATH = 'api/v4/functions/backend'
-PROXY_FUNCTION_NAME = 'bearer-proxy'
-TIMEOUT = 5
+import warnings
+import requests
+import pkg_resources
 
-class FunctionError(Exception):
-    def __init__(self, response):
-      super().__init__(response)
-      self.response = response
+# Bearer Python bindings
+# API docs at https://docs.bearer.sh/integration-clients/python
+# Authors:
+# Bearer Team <dev@bearer.sh>
+
+BEARER_PROXY_HOST = 'https://proxy.bearer.sh'
+TIMEOUT = 5
 
 class Bearer():
     """Bearer client
@@ -29,7 +31,7 @@ class Bearer():
             api_key: str,
             integration_host: str = None,
             timeout: int = None,
-            host: str = PRODUCTION_INTEGRATION_HOST,
+            host: str = BEARER_PROXY_HOST,
             http_client_settings: Dict[str, str] = {"timeout": TIMEOUT}
     ):
         """
@@ -88,49 +90,78 @@ class Integration():
         """
         return self.auth(auth_id)
 
-    def get(self, endpoint: str, headers: Optional[dict] = None, body: Optional[BodyData] = None, query: Optional[dict] = None):
+    def get(self,
+            endpoint: str,
+            headers: Optional[dict] = None,
+            body: Optional[BodyData] = None,
+            query: Optional[dict] = None):
         """Makes a GET request to the API configured for this integration and returns the response
 
         See `self.request` for a description of the parameters
         """
         return self.request('GET', endpoint, headers, body, query)
 
-    def head(self, endpoint: str, headers: Optional[dict] = None, body: Optional[BodyData] = None, query: Optional[dict] = None):
+    def head(self,
+             endpoint: str,
+             headers: Optional[dict] = None,
+             body: Optional[BodyData] = None,
+             query: Optional[dict] = None):
         """Makes a HEAD request to the API configured for this integration and returns the response
 
         See `self.request` for a description of the parameters
         """
         return self.request('HEAD', endpoint, headers, body, query)
 
-    def post(self, endpoint: str, headers: Optional[dict] = None, body: Optional[BodyData] = None, query: Optional[dict] = None):
+    def post(self,
+             endpoint: str,
+             headers: Optional[dict] = None,
+             body: Optional[BodyData] = None,
+             query: Optional[dict] = None):
         """Makes a POST request to the API configured for this integration and returns the response
 
         See `self.request` for a description of the parameters
         """
         return self.request('POST', endpoint, headers, body, query)
 
-    def put(self, endpoint: str, headers: Optional[dict] = None, body: Optional[BodyData] = None, query: Optional[dict] = None):
+    def put(self,
+            endpoint: str,
+            headers: Optional[dict] = None,
+            body: Optional[BodyData] = None,
+            query: Optional[dict] = None):
         """Makes a PUT request to the API configured for this integration and returns the response
 
         See `self.request` for a description of the parameters
         """
         return self.request('PUT', endpoint, headers, body, query)
 
-    def patch(self, endpoint: str, headers: Optional[dict] = None, body: Optional[BodyData] = None, query: Optional[dict] = None):
+    def patch(self,
+              endpoint: str,
+              headers: Optional[dict] = None,
+              body: Optional[BodyData] = None,
+              query: Optional[dict] = None):
         """Makes a PATCH request to the API configured for this integration and returns the response
 
         See `self.request` for a description of the parameters
         """
         return self.request('PATCH', endpoint, headers, body, query)
 
-    def delete(self, endpoint: str, headers: Optional[dict] = None, body: Optional[BodyData] = None, query: Optional[dict] = None):
+    def delete(self,
+               endpoint: str,
+               headers: Optional[dict] = None,
+               body: Optional[BodyData] = None,
+               query: Optional[dict] = None):
         """Makes a DELETE request to the API configured for this integration and returns the response
 
         See `self.request` for a description of the parameters
         """
         return self.request('DELETE', endpoint, headers, body, query)
 
-    def request(self, method: str, endpoint: str, headers: Optional[dict] = None, body: Optional[BodyData] = None, query: Optional[dict] = None):
+    def request(self,
+                method: str,
+                endpoint: str,
+                headers: Optional[dict] = None,
+                body: Optional[BodyData] = None,
+                query: Optional[dict] = None):
         """Makes a request to the API configured for this integration and returns the response
 
         Args:
@@ -144,16 +175,23 @@ class Integration():
         version = pkg_resources.require("bearer")[0].version
 
         pre_headers = {
-          'Authorization': self.api_key,
-          'User-Agent': 'Bearer-Python ({version})'.format(version=version),
-          'Bearer-Auth-Id': self.auth_id
+            'Authorization': self.api_key,
+            'User-Agent': 'Bearer-Python ({version})'.format(version=version),
+            'Bearer-Auth-Id': self.auth_id
         }
 
         if headers is not None:
-          for key, value in headers.items():
-            pre_headers['Bearer-Proxy-{}'.format(key)] = value
+            request_headers = {**pre_headers, **headers}
+        else:
+            request_headers = pre_headers
 
-        request_headers = {k: v for k, v in pre_headers.items() if v is not None}
-        url = '{}/{}/{}/{}/{}'.format(self.host, FUNCTIONS_PATH, self.integration_id, PROXY_FUNCTION_NAME, endpoint.lstrip('/'))
+        request_headers = {k: v for k, v in request_headers.items() if v is not None}
 
-        return requests.request(method, url, headers=request_headers, json=body, params=query, **self.http_client_settings)
+        url = '{}/{}/{}'.format(self.host, self.integration_id, endpoint.lstrip('/'))
+
+        return requests.request(method,
+                                url,
+                                headers=request_headers,
+                                json=body,
+                                params=query,
+                                **self.http_client_settings)
