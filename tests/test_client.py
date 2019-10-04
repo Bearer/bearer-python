@@ -129,11 +129,13 @@ def test_setting_http_client_settings_in_integration(mocker):
         timeout=5
     )
 
+def test_setting_http_client_settings_in_integration_and_host_in_bearer_class(mocker):
+    mocker.patch("requests.request")
     github = Bearer("api_key", host="https://some.other.host").integration("github", http_client_settings={"timeout":11})
 
     github.get("/")
 
-    requests.request.assert_called_with(
+    requests.request.assert_called_once_with(
         'GET',
         'https://some.other.host/api/v4/functions/backend/github/bearer-proxy/',
         headers={'Authorization': 'api_key', 'User-Agent': 'Bearer-Python (1.2.0)'},
