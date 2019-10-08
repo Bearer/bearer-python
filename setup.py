@@ -24,7 +24,7 @@ setuptools.setup(
     setup_requires=[
         "pytest-runner",
         "twine",
-        "wheel"
+        "wheel",
     ],
     tests_require=[
         "faker",

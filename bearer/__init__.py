@@ -16,6 +16,7 @@ import pkg_resources
 BEARER_PROXY_HOST = 'https://proxy.bearer.sh'
 TIMEOUT = 5
 
+
 class Bearer():
     """Bearer client
 
@@ -25,51 +26,70 @@ class Bearer():
       >>> bearer = Bearer('<api-key>')
       >>> bearer.integration('<integration_id>')
     """
-
-    def __init__(
-            self,
-            api_key: str,
-            integration_host: str = None,
-            timeout: int = None,
-            host: str = BEARER_PROXY_HOST,
-            http_client_settings: Dict[str, str] = {"timeout": TIMEOUT}
-    ):
+    def __init__(self,
+                 secret_key: str,
+                 integration_host: str = None,
+                 timeout: int = None,
+                 host: str = BEARER_PROXY_HOST,
+                 http_client_settings: Dict[str, str] = {"timeout": TIMEOUT}):
         """
         Args:
-          api_key: developer API Key from the Dashboard
-
+          secret_key: developer API Key from https://app.bearer.sh/settings 
+          host: used internally
+          http_client_settings: Dictionary passed as kwargs to requests.request method
+          timeout: DEPRECATED please use http_client_settings instead
+          integration_host: DEPRECATED please use host instead
         """
-        self.api_key = api_key
+        self.secret_key = secret_key
         self.host = host
         self.http_client_settings = http_client_settings
         if integration_host is not None:
-            warnings.warn("Please use `host`; `integration_host` is deprecated", DeprecationWarning)
+            warnings.warn(
+                "Please use `host`; `integration_host` is deprecated",
+                DeprecationWarning)
             self.host = integration_host
         if timeout is not None:
-            warnings.warn("Please use `http_client_settings`; `timeout` is deprecated", DeprecationWarning)
+            warnings.warn(
+                "Please use `http_client_settings`; `timeout` is deprecated",
+                DeprecationWarning)
             self.timeout = self.http_client_settings["timeout"] = timeout
 
-    def integration(self, integration_id: str, http_client_settings: Dict[str, str] = {}):
+    def integration(self,
+                    integration_id: str,
+                    http_client_settings: Dict[str, str] = {}):
         client_settings = {**self.http_client_settings, **http_client_settings}
-        return Integration(integration_id, self.host, self.api_key, client_settings)
+        return Integration(integration_id, self.host, self.secret_key,
+                           client_settings)
+
 
 BodyData = Union[dict, list]
+
 
 class Integration():
     def __init__(
             self,
             integration_id: str,
             host: str,
-            api_key: str,
+            secret_key: str,
             http_client_settings: Dict[str, str] = {},
             auth_id: str = None,
+            setup_id: str = None,
     ):
+        """
+        Args:
+          integration_id: id of an integration, see https://app.bearer.sh/apis
+          host: used internally
+          secret_key: developer secret key, see https://app.bearer.sh/settings
+          http_client_settings: Dictionary passed as kwargs to requests.request method
+          auth_id: auth id used to connect
+          setup_id: the setup id used to store the credentials
+        """
         self.integration_id = integration_id
         self.host = host
-        self.api_key = api_key
+        self.secret_key = secret_key
         self.auth_id = auth_id
+        self.setup_id = setup_id
         self.http_client_settings = http_client_settings
-
 
     def auth(self, auth_id: str):
         """Returns a new integration client instance that will use the given auth id for requests
@@ -77,18 +97,29 @@ class Integration():
         Args:
           auth_id: the auth id used to connect
         """
-        return Integration(
-            self.integration_id,
-            self.host,
-            self.api_key,
-            self.http_client_settings,
-            auth_id
-        )
+        return Integration(integration_id=self.integration_id,
+                           host=self.host,
+                           secret_key=self.secret_key,
+                           http_client_settings=self.http_client_settings,
+                           auth_id=auth_id,
+                           setup_id=self.setup_id)
 
     def authenticate(self, auth_id: str):
         """An alias for `self.auth`
         """
         return self.auth(auth_id)
+
+    def setup(self, setup_id: str):
+        """Returns a new integration client instance that will use the given setup id for requests
+        Args:
+          setup_id: the setup id from the dashboard
+        """
+        return Integration(integration_id=self.integration_id,
+                           host=self.host,
+                           secret_key=self.secret_key,
+                           http_client_settings=self.http_client_settings,
+                           auth_id=self.auth_id,
+                           setup_id=setup_id)
 
     def get(self,
             endpoint: str,
@@ -175,9 +206,10 @@ class Integration():
         version = pkg_resources.require("bearer")[0].version
 
         pre_headers = {
-            'Authorization': self.api_key,
+            'Authorization': self.secret_key,
             'User-Agent': 'Bearer-Python ({version})'.format(version=version),
-            'Bearer-Auth-Id': self.auth_id
+            'Bearer-Auth-Id': self.auth_id,
+            'Bearer-Setup-Id': self.setup_id
         }
 
         if headers is not None:
@@ -185,9 +217,13 @@ class Integration():
         else:
             request_headers = pre_headers
 
-        request_headers = {k: v for k, v in request_headers.items() if v is not None}
+        request_headers = {
+            k: v
+            for k, v in request_headers.items() if v is not None
+        }
 
-        url = '{}/{}/{}'.format(self.host, self.integration_id, endpoint.lstrip('/'))
+        url = '{}/{}/{}'.format(self.host, self.integration_id,
+                                endpoint.lstrip('/'))
 
         return requests.request(method,
                                 url,
