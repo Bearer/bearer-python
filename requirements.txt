@@ -1,8 +1,0 @@
-setuptools 
-wheel 
-twine
-
-requests[security]>=2.9.1
-requests_mock
-faker
-pytest

@@ -42,17 +42,19 @@ print(github.get('/repositories', query={ 'since': 364 }).json())
 print(github.post('/user/repos', body={ 'name': 'Just setting up my Bearer.sh' }).json())
 ```
 
-### Setting the request timeout
-
+### Setting the request timeout, and other http client settings
+Bearer client is written on top of excellent [requests](https://github.com/psf/requests "requests library on github") library. Bearer provides reasonable defaults but you can adjust http client configuration by using any keyword argument which is accepted by requests.request method using `http_client_settings` keyword argument.
 By default bearer client times out after 5 seconds. Bearer allows to increase the timeout to up to 30 seconds
 
 ```python
 from bearer import Bearer
 
-bearer = Bearer('BEARER_SECRET_KEY', timeout=10) # increase the request timeout to 10 seconds
-github = bearer.integration('your integration id')
+bearer = Bearer('BEARER_SECRET_KEY', http_client_settings={"timeout": 10}) # increase the request timeout to 10 seconds globally
 
-print(github.invoke('your function name'))
+# you can specify client settings per integration as well
+github = bearer.integration('github', http_client_settings={"timeout": 2}) # github api is super fast 2 seconds should be plenty
+
+print(github.get('/user/repos'))
 ```
 ## Development
 

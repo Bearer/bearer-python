@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="bearer",
-    version="1.2.0",
+    version="2.0.0",
     author="Bearer Team",
     author_email="engineering+python@bearer.sh",
     description="Bearer python helper",
@@ -24,11 +24,12 @@ setuptools.setup(
     setup_requires=[
         "pytest-runner",
         "twine",
-        "wheel"
+        "wheel",
     ],
     tests_require=[
         "faker",
         "pytest",
-        "requests_mock"
+        "requests_mock",
+        "pytest-mock"
     ]
 )
