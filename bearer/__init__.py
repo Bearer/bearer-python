@@ -3,11 +3,13 @@ Bearer Python bindings
 """
 
 from typing import Optional, Union, Dict
+from logging import DEBUG, INFO
+from textwrap import dedent
 
 import warnings
 import requests
 import pkg_resources
-
+import logging
 # Bearer Python bindings
 # API docs at https://docs.bearer.sh/integration-clients/python
 # Authors:
@@ -15,6 +17,12 @@ import pkg_resources
 
 BEARER_PROXY_HOST = 'https://proxy.bearer.sh'
 TIMEOUT = 5
+
+LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logging.basicConfig(format=LOG_FORMAT)
 
 
 class Bearer():
@@ -34,7 +42,7 @@ class Bearer():
                  http_client_settings: Dict[str, str] = {"timeout": TIMEOUT}):
         """
         Args:
-          secret_key: developer API Key from https://app.bearer.sh/settings 
+          secret_key: developer API Key from https://app.bearer.sh/settings
           host: used internally
           http_client_settings: Dictionary passed as kwargs to requests.request method
           timeout: DEPRECATED please use http_client_settings instead
@@ -225,9 +233,45 @@ class Integration():
         url = '{}/{}/{}'.format(self.host, self.integration_id,
                                 endpoint.lstrip('/'))
 
-        return requests.request(method,
-                                url,
-                                headers=request_headers,
-                                json=body,
-                                params=query,
-                                **self.http_client_settings)
+        self.debug_request(url=url,
+                           method=method,
+                           body=body,
+                           params=query,
+                           headers=request_headers,
+                           http_client_settings=self.http_client_settings)
+
+        response = requests.request(method,
+                                    url,
+                                    headers=request_headers,
+                                    json=body,
+                                    params=query,
+                                    **self.http_client_settings)
+
+        self.info_request(response)
+        return response
+
+    def debug_request(self,
+                      url=None,
+                      method=None,
+                      body=None,
+                      params=None,
+                      headers=None,
+                      http_client_settings=None):
+        if logger.isEnabledFor(DEBUG):
+            logger.debug(
+                dedent("""
+                sending request
+                    url: {}
+                    method: {}
+                    params: {}
+                    body: {}
+                    headers: {}
+                    http_client_settings: {}
+
+            """.format(url, method, params, body, headers,
+                       http_client_settings)).strip())
+
+    def info_request(self, response):
+        if logger.isEnabledFor(INFO):
+            logger.info("request id: {}".format(
+                response.headers["Bearer-Request-Id"]))
