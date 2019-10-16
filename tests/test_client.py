@@ -17,7 +17,10 @@ CUSTOM_URL = '{}/{}/'.format(CUSTOM_HOST, BUID)
 ENDPOINT_URL = '{}test?query=param'.format(URL)
 
 HEADERS = {'test': 'header'}
-SENT_HEADERS = {'Bearer-Proxy-test': 'header'}
+SENT_HEADERS = {
+    'Bearer-Proxy-test': 'header',
+    'Bearer-Request-Id': 'bearer-request-id'
+}
 QUERY = {'query': 'param'}
 BODY = {'body': 'data'}
 
