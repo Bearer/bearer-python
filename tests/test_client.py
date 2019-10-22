@@ -1,6 +1,7 @@
 import pytest
 import requests
 import pkg_resources
+from unittest.mock import MagicMock
 
 from bearer import Bearer
 
@@ -161,55 +162,67 @@ def test_bearer_with_integration_host_issues_warning():
 
 
 def test_setting_http_client_settings(mocker):
-    mocker.patch("requests.request")
+    request = mocker.patch.object(requests.Session, 'request')
     api = Bearer(API_KEY, http_client_settings={
         "timeout": 11
     }).integration(BUID)
     api.get("/")
-    requests.request.assert_called_once_with(
-        'GET',
-        URL,
-        headers={
-            'Authorization': API_KEY,
-            'User-Agent': 'Bearer-Python ({})'.format(VERSION)
-        },
-        json=None,
-        params=None,
-        timeout=11)
+
+    request.assert_called_once_with('GET',
+                                    URL,
+                                    headers={
+                                        'Authorization':
+                                        API_KEY,
+                                        'User-Agent':
+                                        'Bearer-Python ({})'.format(VERSION)
+                                    },
+                                    json=None,
+                                    params=None,
+                                    timeout=11)
 
 
 def test_setting_http_client_settings_in_integration(mocker):
-    mocker.patch("requests.request")
+    request = mocker.patch.object(requests.Session, 'request')
     api = Bearer(API_KEY).integration(BUID)
     api.get("/")
 
-    requests.request.assert_called_once_with(
-        'GET',
-        URL,
-        headers={
-            'Authorization': API_KEY,
-            'User-Agent': 'Bearer-Python ({})'.format(VERSION)
-        },
-        json=None,
-        params=None,
-        timeout=5)
+    request.assert_called_once_with('GET',
+                                    URL,
+                                    headers={
+                                        'Authorization':
+                                        API_KEY,
+                                        'User-Agent':
+                                        'Bearer-Python ({})'.format(VERSION)
+                                    },
+                                    json=None,
+                                    params=None,
+                                    timeout=5)
 
 
 def test_setting_http_client_settings_in_integration_and_host_in_bearer_class(
         mocker):
-    mocker.patch("requests.request")
+
+    request = mocker.patch.object(requests.Session, 'request')
     github = Bearer(API_KEY, host=CUSTOM_HOST).integration(
         BUID, http_client_settings={"timeout": 11})
 
     github.get("/")
 
-    requests.request.assert_called_once_with(
-        'GET',
-        CUSTOM_URL,
-        headers={
-            'Authorization': API_KEY,
-            'User-Agent': 'Bearer-Python ({})'.format(VERSION)
-        },
-        json=None,
-        params=None,
-        timeout=11)
+    request.assert_called_once_with('GET',
+                                    CUSTOM_URL,
+                                    headers={
+                                        'Authorization':
+                                        API_KEY,
+                                        'User-Agent':
+                                        'Bearer-Python ({})'.format(VERSION)
+                                    },
+                                    json=None,
+                                    params=None,
+                                    timeout=11)
+
+
+def test_retrying_requests_a_class(mocker):
+    github = Bearer(API_KEY, host=CUSTOM_HOST).integration(
+        BUID, http_client_settings={"timeout": 11})
+
+    github.get("/")
