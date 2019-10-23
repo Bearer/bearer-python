@@ -201,7 +201,6 @@ def test_setting_http_client_settings_in_integration(mocker):
 
 def test_setting_http_client_settings_in_integration_and_host_in_bearer_class(
         mocker):
-
     request = mocker.patch.object(requests.Session, 'request')
     github = Bearer(API_KEY, host=CUSTOM_HOST).integration(
         BUID, http_client_settings={"timeout": 11})
@@ -219,10 +218,3 @@ def test_setting_http_client_settings_in_integration_and_host_in_bearer_class(
                                     json=None,
                                     params=None,
                                     timeout=11)
-
-
-def test_retrying_requests_a_class(mocker):
-    github = Bearer(API_KEY, host=CUSTOM_HOST).integration(
-        BUID, http_client_settings={"timeout": 11})
-
-    github.get("/")

@@ -252,6 +252,7 @@ class Integration():
                            headers=request_headers,
                            http_client_settings=self.http_client_settings)
 
+        print(f"SENDING REQUEST: {method}, {url}, {query}")
         response = s.request(method,
                              url,
                              headers=request_headers,
