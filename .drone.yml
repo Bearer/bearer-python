@@ -11,7 +11,7 @@ steps:
   - name: Test
     image: python:3.7.2-slim
     commands:
-      - python -m tox
+      - tox
   - name: Build
     image: python:3.7.2-slim
     commands:
