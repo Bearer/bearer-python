@@ -8,7 +8,8 @@ steps:
       - python -m pip install twine
       - python -m pip install --user --upgrade setuptools wheel
       - python setup.py sdist bdist_wheel
-      - echo "[pypi]\nusername = __token__\npassword = $TWINE_TOKEN" > ~/.pypirc
+      - echo "[pypi]\nusername = __token__\npassword = $TWINE_TOKEN\n" > ~/.pypirc
+      - chmod 0600 ~/.pypirc
       - python -m twine upload dist/*
 
 trigger:
