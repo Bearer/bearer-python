@@ -5,13 +5,15 @@ steps:
   - name: Install
     image: python:3.7.2-slim
     commands:
+      - python -m venv venv
+      - venv/bin/pip install tox
       - python -m pip install --user tox
       - python -m pip install twine
       - python -m pip install --user --upgrade setuptools wheel
   - name: Test
     image: python:3.7.2-slim
     commands:
-      - tox
+      - venv/bin/pip tox
   - name: Build
     image: python:3.7.2-slim
     commands:
