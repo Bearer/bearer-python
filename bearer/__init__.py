@@ -6,6 +6,9 @@ from typing import Optional, Union, Dict
 from logging import DEBUG, INFO
 from textwrap import dedent
 
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+
 import warnings
 import requests
 import pkg_resources
@@ -17,6 +20,7 @@ import logging
 
 BEARER_PROXY_HOST = 'https://proxy.bearer.sh'
 TIMEOUT = 5
+DEFAULT_RETRY = 1
 
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
@@ -211,6 +215,14 @@ class Integration():
           query: parameters to add to the URL's query string
         """
 
+        s = requests.Session()
+
+        retries = Retry(total=DEFAULT_RETRY,
+                        backoff_factor=0.5,
+                        status_forcelist=[502, 503, 504])
+
+        s.mount('https://', HTTPAdapter(max_retries=retries))
+
         version = pkg_resources.require("bearer")[0].version
 
         pre_headers = {
@@ -240,12 +252,13 @@ class Integration():
                            headers=request_headers,
                            http_client_settings=self.http_client_settings)
 
-        response = requests.request(method,
-                                    url,
-                                    headers=request_headers,
-                                    json=body,
-                                    params=query,
-                                    **self.http_client_settings)
+        print(f"SENDING REQUEST: {method}, {url}, {query}")
+        response = s.request(method,
+                             url,
+                             headers=request_headers,
+                             json=body,
+                             params=query,
+                             **self.http_client_settings)
 
         self.info_request(response)
         return response
@@ -273,5 +286,8 @@ class Integration():
 
     def info_request(self, response):
         if logger.isEnabledFor(INFO):
-            logger.info("request id: {}".format(
-                response.headers["Bearer-Request-Id"]))
+            try:
+                requestId = response.headers["Bearer-Request-Id"]
+            except KeyError:
+                requestId = None
+            logger.info(f"request id: {requestId}")
