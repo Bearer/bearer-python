@@ -4,9 +4,12 @@ import pkg_resources
 from unittest.mock import MagicMock
 
 from bearer import Bearer
+from bearer.errors import MissingAuthId
+from bearer.auth_details import AuthDetails
 
 API_KEY = 'api-key'
 BUID = 'buid'
+AUTH_ID = 'auth-id'
 
 SUCCESS_PAYLOAD = {"data": "It Works!!"}
 ERROR_PAYLOAD = {"error": "Oops!"}
@@ -19,8 +22,8 @@ ENDPOINT_URL = '{}test?query=param'.format(URL)
 
 HEADERS = {'test': 'header'}
 SENT_HEADERS = {
-    'Bearer-Proxy-test': 'header',
-    'Bearer-Request-Id': 'bearer-request-id'
+    'Authorization': API_KEY,
+    'test': 'header'
 }
 QUERY = {'query': 'param'}
 BODY = {'body': 'data'}
@@ -29,7 +32,9 @@ VERSION = pkg_resources.require("bearer")[0].version
 
 
 def test_request_supports_get(requests_mock):
-    requests_mock.get(ENDPOINT_URL, headers=SENT_HEADERS, json=SUCCESS_PAYLOAD)
+    requests_mock.get(ENDPOINT_URL,
+                      request_headers=SENT_HEADERS,
+                      json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
     integration = client.integration(BUID)
@@ -39,7 +44,7 @@ def test_request_supports_get(requests_mock):
 
 
 def test_request_supports_head(requests_mock):
-    requests_mock.head(ENDPOINT_URL, headers=SENT_HEADERS)
+    requests_mock.head(ENDPOINT_URL, request_headers=SENT_HEADERS)
 
     client = Bearer(API_KEY)
     integration = client.integration(BUID)
@@ -50,7 +55,7 @@ def test_request_supports_head(requests_mock):
 
 def test_request_supports_post(requests_mock):
     requests_mock.post(ENDPOINT_URL,
-                       headers=SENT_HEADERS,
+                       request_headers=SENT_HEADERS,
                        json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
@@ -65,7 +70,9 @@ def test_request_supports_post(requests_mock):
 
 
 def test_request_supports_put(requests_mock):
-    requests_mock.put(ENDPOINT_URL, headers=SENT_HEADERS, json=SUCCESS_PAYLOAD)
+    requests_mock.put(ENDPOINT_URL,
+                      request_headers=SENT_HEADERS,
+                      json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
     integration = client.integration(BUID)
@@ -80,7 +87,7 @@ def test_request_supports_put(requests_mock):
 
 def test_request_supports_patch(requests_mock):
     requests_mock.patch(ENDPOINT_URL,
-                        headers=SENT_HEADERS,
+                        request_headers=SENT_HEADERS,
                         json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
@@ -96,7 +103,7 @@ def test_request_supports_patch(requests_mock):
 
 def test_request_supports_delete(requests_mock):
     requests_mock.delete(ENDPOINT_URL,
-                         headers=SENT_HEADERS,
+                         request_headers=SENT_HEADERS,
                          json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
@@ -114,7 +121,7 @@ def test_request_passes_auth_id(requests_mock):
     auth_id = 'test-auth-id'
     expected_headers = {**SENT_HEADERS, 'Bearer-Auth-Id': auth_id}
     requests_mock.post(ENDPOINT_URL,
-                       headers=expected_headers,
+                       request_headers=expected_headers,
                        json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
@@ -132,7 +139,7 @@ def test_request_passes_setup_id(requests_mock):
     setup_id = 'test-setup-id'
     expected_headers = {**SENT_HEADERS, 'Bearer-Setup-Id': setup_id}
     requests_mock.post(ENDPOINT_URL,
-                       headers=expected_headers,
+                       request_headers=expected_headers,
                        json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
@@ -218,3 +225,34 @@ def test_setting_http_client_settings_in_integration_and_host_in_bearer_class(
                                     json=None,
                                     params=None,
                                     timeout=11)
+
+
+def test_get_auth_details(mocker, requests_mock):
+    raw_data = { 'auth': 'details' }
+    mock_auth_details = object()
+
+    expected_headers = {
+        'Authorization': API_KEY,
+        'Content-Type': 'application/json'
+    }
+    requests_mock.get(f'https://auth.bearer.sh/apis/{BUID}/auth/{AUTH_ID}',
+                       request_headers=expected_headers,
+                       json=raw_data)
+
+    auth_details_init = mocker.patch.object(AuthDetails, '__new__',
+                                            return_value=mock_auth_details)
+
+    auth_details = Bearer(API_KEY, host=CUSTOM_HOST).integration(
+        BUID, http_client_settings={"timeout": 11}
+    ).auth(AUTH_ID).get_auth()
+
+    auth_details_init.assert_called_once_with(AuthDetails, raw_data)
+    assert auth_details == mock_auth_details
+
+
+def test_get_auth_details_raises_error_when_no_auth_id():
+    github = Bearer(API_KEY, host=CUSTOM_HOST).integration(
+        BUID, http_client_settings={"timeout": 11})
+
+    with pytest.raises(MissingAuthId):
+        github.get_auth()

@@ -13,11 +13,16 @@ import warnings
 import requests
 import pkg_resources
 import logging
+
+from .auth_details import AuthDetails
+from .errors import MissingAuthId
+
 # Bearer Python bindings
 # API docs at https://docs.bearer.sh/integration-clients/python
 # Authors:
 # Bearer Team <dev@bearer.sh>
 
+BEARER_AUTH_HOST = 'https://auth.bearer.sh'
 BEARER_PROXY_HOST = 'https://proxy.bearer.sh'
 TIMEOUT = 5
 DEFAULT_RETRY = 1
@@ -42,17 +47,20 @@ class Bearer():
                  secret_key: str,
                  integration_host: str = None,
                  timeout: int = None,
+                 auth_host: str = BEARER_AUTH_HOST,
                  host: str = BEARER_PROXY_HOST,
                  http_client_settings: Dict[str, str] = {"timeout": TIMEOUT}):
         """
         Args:
           secret_key: developer API Key from https://app.bearer.sh/settings
+          auth_host: used internally
           host: used internally
           http_client_settings: Dictionary passed as kwargs to requests.request method
           timeout: DEPRECATED please use http_client_settings instead
           integration_host: DEPRECATED please use host instead
         """
         self.secret_key = secret_key
+        self.auth_host = auth_host
         self.host = host
         self.http_client_settings = http_client_settings
         if integration_host is not None:
@@ -70,8 +78,8 @@ class Bearer():
                     integration_id: str,
                     http_client_settings: Dict[str, str] = {}):
         client_settings = {**self.http_client_settings, **http_client_settings}
-        return Integration(integration_id, self.host, self.secret_key,
-                           client_settings)
+        return Integration(integration_id, self.auth_host, self.host,
+                           self.secret_key, client_settings)
 
 
 BodyData = Union[dict, list]
@@ -81,6 +89,7 @@ class Integration():
     def __init__(
             self,
             integration_id: str,
+            auth_host: str,
             host: str,
             secret_key: str,
             http_client_settings: Dict[str, str] = {},
@@ -90,6 +99,7 @@ class Integration():
         """
         Args:
           integration_id: id of an integration, see https://app.bearer.sh/apis
+          auth_host: used internally
           host: used internally
           secret_key: developer secret key, see https://app.bearer.sh/settings
           http_client_settings: Dictionary passed as kwargs to requests.request method
@@ -97,6 +107,7 @@ class Integration():
           setup_id: the setup id used to store the credentials
         """
         self.integration_id = integration_id
+        self.auth_host = auth_host
         self.host = host
         self.secret_key = secret_key
         self.auth_id = auth_id
@@ -110,6 +121,7 @@ class Integration():
           auth_id: the auth id used to connect
         """
         return Integration(integration_id=self.integration_id,
+                           auth_host=self.auth_host,
                            host=self.host,
                            secret_key=self.secret_key,
                            http_client_settings=self.http_client_settings,
@@ -127,11 +139,31 @@ class Integration():
           setup_id: the setup id from the dashboard
         """
         return Integration(integration_id=self.integration_id,
+                           auth_host=self.auth_host,
                            host=self.host,
                            secret_key=self.secret_key,
                            http_client_settings=self.http_client_settings,
                            auth_id=self.auth_id,
                            setup_id=setup_id)
+
+    def get_auth(self):
+        """Retrieves the auth information (eg. access token) for the current identity.
+
+        You must call `auth` prior to calling this function.
+        """
+        if self.auth_id is None:
+            raise MissingAuthId()
+
+        headers = {
+            'Authorization': self.secret_key,
+            'User-Agent': self._user_agent(),
+            'Content-Type': 'application/json'
+        }
+
+        url = f'{self.auth_host}/apis/{self.integration_id}/auth/{self.auth_id}'
+        response = requests.get(url, headers=headers, **self.http_client_settings)
+
+        return AuthDetails(response.json())
 
     def get(self,
             endpoint: str,
@@ -223,11 +255,9 @@ class Integration():
 
         s.mount('https://', HTTPAdapter(max_retries=retries))
 
-        version = pkg_resources.require("bearer")[0].version
-
         pre_headers = {
             'Authorization': self.secret_key,
-            'User-Agent': 'Bearer-Python ({version})'.format(version=version),
+            'User-Agent': self._user_agent(),
             'Bearer-Auth-Id': self.auth_id,
             'Bearer-Setup-Id': self.setup_id
         }
@@ -291,3 +321,7 @@ class Integration():
             except KeyError:
                 requestId = None
             logger.info(f"request id: {requestId}")
+
+    def _user_agent(self):
+        version = pkg_resources.require("bearer")[0].version
+        return f'Bearer-Python ({version})'
