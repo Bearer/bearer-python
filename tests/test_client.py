@@ -22,8 +22,8 @@ ENDPOINT_URL = '{}test?query=param'.format(URL)
 
 HEADERS = {'test': 'header'}
 SENT_HEADERS = {
-    'Bearer-Proxy-test': 'header',
-    'Bearer-Request-Id': 'bearer-request-id'
+    'Authorization': API_KEY,
+    'test': 'header'
 }
 QUERY = {'query': 'param'}
 BODY = {'body': 'data'}
@@ -32,7 +32,9 @@ VERSION = pkg_resources.require("bearer")[0].version
 
 
 def test_request_supports_get(requests_mock):
-    requests_mock.get(ENDPOINT_URL, headers=SENT_HEADERS, json=SUCCESS_PAYLOAD)
+    requests_mock.get(ENDPOINT_URL,
+                      request_headers=SENT_HEADERS,
+                      json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
     integration = client.integration(BUID)
@@ -42,7 +44,7 @@ def test_request_supports_get(requests_mock):
 
 
 def test_request_supports_head(requests_mock):
-    requests_mock.head(ENDPOINT_URL, headers=SENT_HEADERS)
+    requests_mock.head(ENDPOINT_URL, request_headers=SENT_HEADERS)
 
     client = Bearer(API_KEY)
     integration = client.integration(BUID)
@@ -53,7 +55,7 @@ def test_request_supports_head(requests_mock):
 
 def test_request_supports_post(requests_mock):
     requests_mock.post(ENDPOINT_URL,
-                       headers=SENT_HEADERS,
+                       request_headers=SENT_HEADERS,
                        json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
@@ -68,7 +70,9 @@ def test_request_supports_post(requests_mock):
 
 
 def test_request_supports_put(requests_mock):
-    requests_mock.put(ENDPOINT_URL, headers=SENT_HEADERS, json=SUCCESS_PAYLOAD)
+    requests_mock.put(ENDPOINT_URL,
+                      request_headers=SENT_HEADERS,
+                      json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
     integration = client.integration(BUID)
@@ -83,7 +87,7 @@ def test_request_supports_put(requests_mock):
 
 def test_request_supports_patch(requests_mock):
     requests_mock.patch(ENDPOINT_URL,
-                        headers=SENT_HEADERS,
+                        request_headers=SENT_HEADERS,
                         json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
@@ -99,7 +103,7 @@ def test_request_supports_patch(requests_mock):
 
 def test_request_supports_delete(requests_mock):
     requests_mock.delete(ENDPOINT_URL,
-                         headers=SENT_HEADERS,
+                         request_headers=SENT_HEADERS,
                          json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
@@ -117,7 +121,7 @@ def test_request_passes_auth_id(requests_mock):
     auth_id = 'test-auth-id'
     expected_headers = {**SENT_HEADERS, 'Bearer-Auth-Id': auth_id}
     requests_mock.post(ENDPOINT_URL,
-                       headers=expected_headers,
+                       request_headers=expected_headers,
                        json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
@@ -135,7 +139,7 @@ def test_request_passes_setup_id(requests_mock):
     setup_id = 'test-setup-id'
     expected_headers = {**SENT_HEADERS, 'Bearer-Setup-Id': setup_id}
     requests_mock.post(ENDPOINT_URL,
-                       headers=expected_headers,
+                       request_headers=expected_headers,
                        json=SUCCESS_PAYLOAD)
 
     client = Bearer(API_KEY)
